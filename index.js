@@ -13,6 +13,8 @@ const redis = new Redis({
   password: process.env.REDIS_PASSWORD,
 });
 
+const MAX_CACHE_SIZE = 10;
+
 redis.on("connect", () => {
   console.log("Redis connected");
 });
@@ -34,6 +36,12 @@ app.get("/cache/:key", async (req, res) => {
   }
 });
 
+const getCacheSize = async () => {
+  return await redis.dbsize(); 
+};
+
+
+
 app.post("/cache", async (req, res) => {
   const { key, value, ttl } = req.body;
 
@@ -42,18 +50,22 @@ app.post("/cache", async (req, res) => {
   }
 
   try {
+    const cacheSize = await getCacheSize();
+    if (cacheSize >= MAX_CACHE_SIZE) {
+      return res.status(403).json({ error: "Cache limit reached. Cannot store more items." });
+    }
     if (ttl) {
       await redis.setex(key, ttl, value);
     } else {
       await redis.set(key, value);
     }
+
     return res.status(201).json({ message: "Cached successfully", key, value });
   } catch (error) {
     return res.status(500).json({ error: "Redis error", details: error.message });
   }
 });
 
-// Delete Cache Entry
 app.delete("/cache/:key", async (req, res) => {
   const { key } = req.params;
 
