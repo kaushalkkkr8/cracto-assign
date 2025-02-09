@@ -17,6 +17,10 @@ redis.on("connect", () => {
   console.log("redis connected");
 });
 
+app.use("/",(req,res)=>{
+    res.send("hello Cracto")
+})
+
 app.get("/cache/:key", async(req, res) => {
     const { key } = req.params;
     try {
